@@ -1,0 +1,614 @@
+{
+  "info": {
+    "_postman_id": "c9d8e7f6-a5b4-4321-9876-fedcba098765",
+    "name": "WeOW API",
+    "description": "Hunger Run 2026 — WeOW Server API\n\n## 禮物規則（submit-score）\n| 分數 | giftType | 圖片 | giftStatus |\n|------|----------|------|------------|\n| ≤99 | — | — | `no_prize` |\n| 100–400 | **A** | **Prize2.png** | `awarded` 等 |\n| >400 | **B** | **Prize1.png** | `awarded` 等 |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001" },
+    { "key": "adminApiKey", "value": "" },
+    { "key": "sectionId", "value": "" },
+    { "key": "gameClientId", "value": "weow-postman-client" },
+    { "key": "gameClientSecret", "value": "" },
+    { "key": "gameJwt", "value": "" },
+    { "key": "sessionId", "value": "" },
+    { "key": "sig", "value": "" },
+    { "key": "socketCode", "value": "" },
+    { "key": "playerEmail", "value": "test@gmail.com" },
+    { "key": "score", "value": "200" },
+    { "key": "scoreNoPrize", "value": "50" },
+    { "key": "scoreGiftB", "value": "200" },
+    { "key": "scoreGiftA", "value": "500" },
+    { "key": "resultUrl", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "完整流程（依序執行）",
+      "description": "Collection Runner 由 01 跑到 12。步驟 03 若 clientId 已存在回 400，可跳過改跑 04 Login。",
+      "item": [
+        {
+          "name": "01 - Health Check",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/health" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "pm.test('API OK', () => pm.response.json().status === 'OK');"
+          ]}}]
+        },
+        {
+          "name": "02 - Admin - Create Section",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Key", "value": "{{adminApiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman 測試 Section\",\n  \"description\": \"API 測試用\",\n  \"seasonKey\": \"season-1\",\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/sections"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 201', () => pm.response.code === 201);",
+            "const id = pm.response.json().data?.item?._id;",
+            "if (id) { pm.environment.set('sectionId', id); pm.collectionVariables.set('sectionId', id); console.log('sectionId:', id); }"
+          ]}}]
+        },
+        {
+          "name": "03 - Admin - Create Game Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Key", "value": "{{adminApiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"clientId\": \"{{gameClientId}}\",\n  \"name\": \"Postman Game Client\",\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/game-clients"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 201 or 400 if exists', () => [201, 400].includes(pm.response.code));",
+            "const secret = pm.response.json().data?.clientSecret;",
+            "if (secret) { pm.environment.set('gameClientSecret', secret); pm.collectionVariables.set('gameClientSecret', secret); console.log('clientSecret saved'); }"
+          ]}}]
+        },
+        {
+          "name": "04 - Game Client - Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"clientId\": \"{{gameClientId}}\",\n  \"clientSecret\": \"{{gameClientSecret}}\"\n}" },
+            "url": "{{baseUrl}}/api/game-auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "const token = pm.response.json().data?.token;",
+            "pm.test('has token', () => !!token);",
+            "if (token) { pm.environment.set('gameJwt', token); pm.collectionVariables.set('gameJwt', token); }"
+          ]}}]
+        },
+        {
+          "name": "05 - Game Client - Get QR / Session Info",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{gameJwt}}" }],
+            "url": "{{baseUrl}}/api/games/{{sectionId}}/info"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "const data = pm.response.json().data;",
+            "const sid = data?.session?._id;",
+            "const sig = data?.qr?.sig;",
+            "const code = data?.session?.socketCode;",
+            "pm.test('has session', () => !!sid);",
+            "if (sid) { pm.environment.set('sessionId', sid); pm.collectionVariables.set('sessionId', sid); }",
+            "if (sig) { pm.environment.set('sig', sig); pm.collectionVariables.set('sig', sig); }",
+            "if (code) { pm.environment.set('socketCode', code); pm.collectionVariables.set('socketCode', code); }",
+            "console.log('joinUrl:', data?.qr?.joinUrl);",
+            "const sec = data?.section;",
+            "pm.test('section hasGiftA boolean', () => typeof sec?.hasGiftA === 'boolean');",
+            "pm.test('section hasGiftB boolean', () => typeof sec?.hasGiftB === 'boolean');",
+            "pm.test('section playtime', () => typeof sec?.playtime?.withinHours === 'boolean');",
+            "console.log('hasGiftA:', sec?.hasGiftA, 'hasGiftB:', sec?.hasGiftB, 'playtime:', sec?.playtime);"
+          ]}}]
+        },
+        {
+          "name": "06 - Public - Gift Availability",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/games/gift-availability" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "const data = pm.response.json().data;",
+            "console.log('available:', data?.available, 'reason:', data?.reason);",
+            "console.log('hours:', data?.distributionStart, '-', data?.distributionEnd);",
+            "console.log('giftA:', data?.giftA?.remaining, 'giftB:', data?.giftB?.remaining);"
+          ]}}]
+        },
+        {
+          "name": "07 - Player - Get Session",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}?sig={{sig}}&code={{socketCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}"],
+              "query": [
+                { "key": "sig", "value": "{{sig}}" },
+                { "key": "code", "value": "{{socketCode}}" }
+              ]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "pm.test('has sessionId', () => !!pm.response.json().sessionId);"
+          ]}}]
+        },
+        {
+          "name": "08 - Player - Accept Terms",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/accept-terms?sig={{sig}}&code={{socketCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "accept-terms"],
+              "query": [
+                { "key": "sig", "value": "{{sig}}" },
+                { "key": "code", "value": "{{socketCode}}" }
+              ]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "pm.test('terms accepted', () => pm.response.json().status === 'terms_accepted');"
+          ]}}]
+        },
+        {
+          "name": "09 - Player - Register Email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{playerEmail}}\",\n  \"sig\": \"{{sig}}\",\n  \"code\": \"{{socketCode}}\"\n}" },
+            "description": "deep-email-validator：需真實可驗證 domain（建議 gmail）。",
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/register-email?sig={{sig}}&code={{socketCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "register-email"],
+              "query": [
+                { "key": "sig", "value": "{{sig}}" },
+                { "key": "code", "value": "{{socketCode}}" }
+              ]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "pm.test('registered', () => pm.response.json().status === 'registered');",
+            "const w = pm.response.json().warning;",
+            "if (w) console.log('warning:', w);"
+          ]}}]
+        },
+        {
+          "name": "10 - Player - Start Game",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/start-game?sig={{sig}}&code={{socketCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "start-game"],
+              "query": [
+                { "key": "sig", "value": "{{sig}}" },
+                { "key": "code", "value": "{{socketCode}}" }
+              ]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "pm.test('playing', () => pm.response.json().status === 'playing');"
+          ]}}]
+        },
+        {
+          "name": "11 - Game Client - Submit Score (禮物 A, {{score}}分)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{gameJwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"score\": {{score}}\n}" },
+            "url": "{{baseUrl}}/api/games/sessions/{{sessionId}}/submit-score"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "const data = pm.response.json().data;",
+            "const score = Number(pm.environment.get('score') || pm.collectionVariables.get('score'));",
+            "console.log('giftStatus:', data?.giftStatus, 'giftType:', data?.giftType);",
+            "console.log('prizeAsset:', data?.prizeAsset, 'giftNumber:', data?.giftNumber);",
+            "console.log('resultUrl:', data?.resultUrl);",
+            "if (score <= 99) {",
+            "  pm.test('no_prize', () => data?.giftStatus === 'no_prize');",
+            "  pm.test('resultUrl null', () => data?.resultUrl === null);",
+            "  pm.test('resultQrImageUrl null', () => data?.resultQrImageUrl === null);",
+            "} else if (score >= 100 && score <= 400) {",
+            "  pm.test('gift A', () => data?.giftType === 'A');",
+            "  pm.test('Prize2', () => data?.prizeAsset === 'Prize2.png');",
+            "} else if (score > 400) {",
+            "  pm.test('gift B', () => data?.giftType === 'B');",
+            "  pm.test('Prize1', () => data?.prizeAsset === 'Prize1.png');",
+            "}",
+            "if (data?.resultUrl) { pm.environment.set('resultUrl', data.resultUrl); }"
+          ]}}]
+        },
+        {
+          "name": "12 - Public - Get Prize Result",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/games/sessions/{{sessionId}}/result?sig={{sig}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "sessions", "{{sessionId}}", "result"],
+              "query": [{ "key": "sig", "value": "{{sig}}" }]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const score = Number(pm.environment.get('score') || 0);",
+            "if (score <= 99) {",
+            "  pm.test('no result yet or 400', () => [400, 404].includes(pm.response.code));",
+            "} else {",
+            "  pm.test('status 200', () => pm.response.code === 200);",
+            "  const data = pm.response.json().data;",
+            "  console.log('prizeAsset:', data?.prizeAsset, 'giftNumber:', data?.giftNumber);",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "13 - Public - Gift Inventory Today",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/games/inventory/today" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('status 200', () => pm.response.code === 200);",
+            "const data = pm.response.json().data;",
+            "console.log('dateKey:', data?.dateKey);",
+            "console.log('giftA remaining:', data?.giftA?.remaining, 'giftB:', data?.giftB?.remaining);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "公開 API",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/health" }
+        },
+        {
+          "name": "Gift Availability",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/games/gift-availability" }
+        },
+        {
+          "name": "Gift Inventory Today",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/games/inventory/today" }
+        },
+        {
+          "name": "Play QR Code 圖片",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/games/sessions/{{sessionId}}/qrcode.png?sig={{sig}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "sessions", "{{sessionId}}", "qrcode.png"],
+              "query": [{ "key": "sig", "value": "{{sig}}" }]
+            }
+          }
+        },
+        {
+          "name": "Prize QR Code 圖片",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/games/sessions/{{sessionId}}/prize-qrcode.png?sig={{sig}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "sessions", "{{sessionId}}", "prize-qrcode.png"],
+              "query": [{ "key": "sig", "value": "{{sig}}" }]
+            }
+          }
+        },
+        {
+          "name": "Get Prize Result",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/games/sessions/{{sessionId}}/result?sig={{sig}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "games", "sessions", "{{sessionId}}", "result"],
+              "query": [{ "key": "sig", "value": "{{sig}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin（X-Admin-Key）",
+      "item": [
+        {
+          "name": "List Sections",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Admin-Key", "value": "{{adminApiKey}}" }],
+            "url": { "raw": "{{baseUrl}}/api/sections?limit=50", "query": [{ "key": "limit", "value": "50" }] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const items = pm.response.json().data?.items || [];",
+            "if (items[0]?._id) { pm.environment.set('sectionId', items[0]._id); }"
+          ]}}]
+        },
+        {
+          "name": "Create Section",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Key", "value": "{{adminApiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Hunger Run 主場\",\n  \"description\": \"\",\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/sections"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const id = pm.response.json().data?.item?._id;",
+            "if (id) pm.environment.set('sectionId', id);"
+          ]}}]
+        },
+        {
+          "name": "Update Section",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Key", "value": "{{adminApiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Hunger Run 主場（已更新）\",\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/sections/{{sectionId}}"
+          }
+        },
+        {
+          "name": "Delete Section",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "X-Admin-Key", "value": "{{adminApiKey}}" }],
+            "url": "{{baseUrl}}/api/sections/{{sectionId}}"
+          }
+        },
+        {
+          "name": "List Game Clients",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "X-Admin-Key", "value": "{{adminApiKey}}" }],
+            "url": "{{baseUrl}}/api/game-clients"
+          }
+        },
+        {
+          "name": "Create Game Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Key", "value": "{{adminApiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"clientId\": \"{{gameClientId}}\",\n  \"name\": \"現場 Game Client\",\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/game-clients"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const secret = pm.response.json().data?.clientSecret;",
+            "if (secret) pm.environment.set('gameClientSecret', secret);"
+          ]}}]
+        },
+        {
+          "name": "Delete Game Client",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "X-Admin-Key", "value": "{{adminApiKey}}" }],
+            "url": "{{baseUrl}}/api/game-clients/{{gameClientMongoId}}",
+            "description": "需手動設定 gameClientMongoId（Mongo _id，非 clientId）"
+          }
+        },
+        {
+          "name": "Issue Game JWT (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "X-Admin-Key", "value": "{{adminApiKey}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"clientId\": \"{{gameClientId}}\",\n  \"expiresInDays\": 30\n}" },
+            "url": "{{baseUrl}}/api/game-auth/token"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const token = pm.response.json().data?.token;",
+            "if (token) pm.environment.set('gameJwt', token);"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Game Client（Bearer GAME JWT）",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"clientId\": \"{{gameClientId}}\",\n  \"clientSecret\": \"{{gameClientSecret}}\"\n}" },
+            "url": "{{baseUrl}}/api/game-auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const token = pm.response.json().data?.token;",
+            "if (token) pm.environment.set('gameJwt', token);"
+          ]}}]
+        },
+        {
+          "name": "Get Section Info + QR",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{gameJwt}}" }],
+            "url": "{{baseUrl}}/api/games/{{sectionId}}/info"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const data = pm.response.json().data;",
+            "if (data?.session?._id) pm.environment.set('sessionId', data.session._id);",
+            "if (data?.qr?.sig) pm.environment.set('sig', data.qr.sig);",
+            "if (data?.session?.socketCode) pm.environment.set('socketCode', data.session.socketCode);",
+            "const sec = data?.section;",
+            "console.log('hasGiftA:', sec?.hasGiftA, 'hasGiftB:', sec?.hasGiftB, 'playtime:', sec?.playtime);"
+          ]}}]
+        },
+        {
+          "name": "Submit Score (變數 score)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{gameJwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"score\": {{score}}\n}" },
+            "url": "{{baseUrl}}/api/games/sessions/{{sessionId}}/submit-score"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const data = pm.response.json().data;",
+            "console.log(JSON.stringify(data, null, 2));"
+          ]}}]
+        },
+        {
+          "name": "Submit Score - 無禮物 (50分)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{gameJwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"score\": {{scoreNoPrize}}\n}" },
+            "url": "{{baseUrl}}/api/games/sessions/{{sessionId}}/submit-score"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('no_prize', () => pm.response.json().data?.giftStatus === 'no_prize');",
+            "pm.test('resultUrl null', () => pm.response.json().data?.resultUrl === null);"
+          ]}}]
+        },
+        {
+          "name": "Submit Score - 禮物 A (200分)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{gameJwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"score\": {{scoreGiftB}}\n}" },
+            "url": "{{baseUrl}}/api/games/sessions/{{sessionId}}/submit-score"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const d = pm.response.json().data;",
+            "pm.test('gift A', () => d?.giftType === 'A');",
+            "pm.test('Prize2', () => d?.prizeAsset === 'Prize2.png');"
+          ]}}]
+        },
+        {
+          "name": "Submit Score - 禮物 B (500分)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{gameJwt}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"score\": {{scoreGiftA}}\n}" },
+            "url": "{{baseUrl}}/api/games/sessions/{{sessionId}}/submit-score"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const d = pm.response.json().data;",
+            "pm.test('gift B', () => d?.giftType === 'B');",
+            "pm.test('Prize1', () => d?.prizeAsset === 'Prize1.png');"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Player 手機端",
+      "item": [
+        {
+          "name": "Get Session",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}?sig={{sig}}&code={{socketCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}"],
+              "query": [
+                { "key": "sig", "value": "{{sig}}" },
+                { "key": "code", "value": "{{socketCode}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept Terms",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/accept-terms?sig={{sig}}&code={{socketCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "accept-terms"],
+              "query": [
+                { "key": "sig", "value": "{{sig}}" },
+                { "key": "code", "value": "{{socketCode}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept Terms (sold-out flow)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"flow\": \"sold-out\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/accept-terms?sig={{sig}}&code={{socketCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "accept-terms"],
+              "query": [
+                { "key": "sig", "value": "{{sig}}" },
+                { "key": "code", "value": "{{socketCode}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register Email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{playerEmail}}\",\n  \"sig\": \"{{sig}}\",\n  \"code\": \"{{socketCode}}\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/register-email?sig={{sig}}&code={{socketCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "register-email"],
+              "query": [
+                { "key": "sig", "value": "{{sig}}" },
+                { "key": "code", "value": "{{socketCode}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Start Game",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/{{sessionId}}/start-game?sig={{sig}}&code={{socketCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sessions", "{{sessionId}}", "start-game"],
+              "query": [
+                { "key": "sig", "value": "{{sig}}" },
+                { "key": "code", "value": "{{socketCode}}" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

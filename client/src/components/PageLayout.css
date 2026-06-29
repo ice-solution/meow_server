@@ -1,0 +1,73 @@
+.page-layout {
+  min-height: 100dvh;
+  background: #fff8d6;
+  color: #333;
+  color-scheme: only light;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.page-layout__main {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 1.25rem calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  z-index: 1;
+}
+
+.page-layout__footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  pointer-events: none;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.page-layout__footer > *:not(.page-layout__footer-img):not(.page-layout__footer-overlay) {
+  pointer-events: none;
+}
+
+.page-layout__footer-overlay {
+  position: absolute;
+  right: 1.1rem;
+  bottom: 34%;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.page-layout__footer-overlay > * {
+  pointer-events: auto;
+}
+
+.page-layout__footer-img {
+  width: 100%;
+  display: block;
+}
+
+.page-layout__logo {
+  width: 72%;
+  max-width: 280px;
+  margin-bottom: 0.5rem;
+}
+
+.page-layout__title {
+  width: 88%;
+  max-width: 340px;
+  margin-bottom: 0.75rem;
+}
+
+.page-layout__main--terms {
+  padding-bottom: calc(7.25rem + env(safe-area-inset-bottom, 0px));
+}
+
+.page-layout__main--terms .page-layout__logo {
+  margin-bottom: 0.35rem;
+}
+
+.page-layout__main--terms .page-layout__title {
+  margin-bottom: 0.5rem;
+}

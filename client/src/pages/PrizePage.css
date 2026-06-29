@@ -1,0 +1,56 @@
+.prize-page--loading {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff8d6;
+  color: #333;
+}
+
+.prize-page__error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: #c0392b;
+  font-size: 1rem;
+}
+
+.prize-page__congrats {
+  width: 70%;
+  max-width: 260px;
+  margin-bottom: 0.75rem;
+}
+
+.prize-page__prize {
+  width: 78%;
+  max-width: 300px;
+  margin-bottom: 0.75rem;
+}
+
+.prize-page__screenshot-hint {
+  width: 92%;
+  max-width: 360px;
+  margin-bottom: 0.5rem;
+}
+
+.prize-page__sorry {
+  width: 80%;
+  max-width: 300px;
+  margin: 2rem 0;
+}
+
+.prize-page__number {
+  position: absolute;
+  right: 1.25rem;
+  bottom: 38%;
+  z-index: 11;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #5c3d2e;
+  letter-spacing: 0.02em;
+  margin: 0;
+  pointer-events: none;
+}

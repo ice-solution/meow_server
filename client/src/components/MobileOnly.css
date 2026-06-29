@@ -1,0 +1,30 @@
+.desktop-block {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff8d6;
+}
+
+.desktop-block__content {
+  text-align: center;
+  padding: 2rem;
+}
+
+.desktop-block__text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.home-placeholder {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff8d6;
+  padding: 2rem;
+  text-align: center;
+  font-size: 1.1rem;
+  color: #555;
+}
