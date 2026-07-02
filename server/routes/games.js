@@ -15,7 +15,7 @@ const {
   getGiftAvailability,
   getDateKey,
 } = require('../services/giftInventory');
-const { determineGiftTypeFromScore } = require('../services/giftScoreSettings');
+const { determineGiftTypeFromScore, getGiftScoreSettings } = require('../services/giftScoreSettings');
 const { buildResultPayload } = require('../utils/result');
 const { createLogger } = require('../utils/logger');
 
@@ -207,6 +207,7 @@ router.get('/:sectionId/info', gameAuth, async (req, res) => {
     const socketCode = randomSocketCode();
     const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
     const availability = await getGiftAvailability();
+    const scoreSettings = await getGiftScoreSettings();
 
     log.step('creating session', { sectionId: section._id, socketCode });
     const session = await GameSession.create({
@@ -245,6 +246,10 @@ router.get('/:sectionId/info', gameAuth, async (req, res) => {
             start: availability.distributionStart,
             end: availability.distributionEnd,
             timezone: availability.timezone,
+          },
+          scoreThresholds: {
+            minPrizeScore: scoreSettings.minPrizeScore,
+            giftAMaxScore: scoreSettings.giftAMaxScore,
           },
         },
         session: {

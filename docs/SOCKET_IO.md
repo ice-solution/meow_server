@@ -130,6 +130,10 @@ Authorization: Bearer <token>
         "start": "10:30",
         "end": "19:30",
         "timezone": "Asia/Hong_Kong"
+      },
+      "scoreThresholds": {
+        "minPrizeScore": 100,
+        "giftAMaxScore": 400
       }
     }
   }
@@ -392,9 +396,15 @@ async function submitScore(score) {
 Game Client 連去同一 domain 時，Server 需支援 WebSocket：
 
 ```apache
-# Apache
-ProxyPass        /socket.io/ ws://127.0.0.1:3001/socket.io/
-ProxyPassReverse /socket.io/ ws://127.0.0.1:3001/socket.io/
+# 需要 Apache 2.4.47+ 及：sudo a2enmod proxy proxy_http proxy_wstunnel headers
+# Cloudflare：Network → WebSockets = On
+
+# Socket.io（polling + websocket 同一條，必須在 ProxyPass / 之前）
+ProxyPass        /socket.io/ http://127.0.0.1:3001/socket.io/ upgrade=websocket retry=0
+ProxyPassReverse /socket.io/ http://127.0.0.1:3001/socket.io/
+
+ProxyPass        / http://127.0.0.1:3001/
+ProxyPassReverse / http://127.0.0.1:3001/
 ```
 
 Cloudflare：**WebSockets = On**
@@ -417,7 +427,7 @@ NODE_ENV=production
 | 401 登入失敗 | `clientId` / `clientSecret`；GameClient `isActive: true` |
 | 無法建立 session | `sectionId` 是否存在；token 是否過期 |
 | 收不到 `session:bound` | 是否已 emit `gameClient:join`；`sessionId` 是否一致；是否喺玩家掃碼前已連 Socket |
-| WebSocket 斷線 | Server 是否 proxy `/socket.io`；Cloudflare WebSocket 是否開啟 |
+| WebSocket 斷線 / Socket 500 | Apache 是否用 Rewrite 分開 polling（http）同 upgrade（ws）；見 `deploy/apache/meow.ice-solution.hk.conf` |
 | QR 連結 domain 錯 | Server `CLIENT_URL` 是否為正式 HTTPS domain |
 
 ---

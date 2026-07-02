@@ -106,7 +106,8 @@
             "pm.test('section hasGiftA boolean', () => typeof sec?.hasGiftA === 'boolean');",
             "pm.test('section hasGiftB boolean', () => typeof sec?.hasGiftB === 'boolean');",
             "pm.test('section playtime', () => typeof sec?.playtime?.withinHours === 'boolean');",
-            "console.log('hasGiftA:', sec?.hasGiftA, 'hasGiftB:', sec?.hasGiftB, 'playtime:', sec?.playtime);"
+            "pm.test('section scoreThresholds', () => typeof sec?.scoreThresholds?.minPrizeScore === 'number');",
+            "console.log('hasGiftA:', sec?.hasGiftA, 'hasGiftB:', sec?.hasGiftB, 'playtime:', sec?.playtime, 'scoreThresholds:', sec?.scoreThresholds);"
           ]}}]
         },
         {

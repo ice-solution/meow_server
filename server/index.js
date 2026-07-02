@@ -33,10 +33,13 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const io = new Server(server, {
+  path: '/socket.io',
   cors: {
     origin: isDev ? true : [CLIENT_URL],
     methods: ['GET', 'POST'],
   },
+  pingTimeout: 60000,
+  pingInterval: 25000,
 });
 
 app.set('io', io);
