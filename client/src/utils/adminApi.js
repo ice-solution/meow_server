@@ -64,4 +64,13 @@ export const adminApi = {
       body: JSON.stringify(payload),
     });
   },
+  getGiftScoreSettings() {
+    return adminFetch('/gift-score-settings');
+  },
+  updateGiftScoreSettings(payload) {
+    return adminFetch('/gift-score-settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
 };

@@ -10,12 +10,12 @@ const { gameAuth } = require('../middleware/gameAuth');
 const { signQrPayload, verifyQrPayload } = require('../utils/gameQr');
 const { resolveClientUrl } = require('../utils/network');
 const {
-  determineGiftType,
   allocateGift,
   getInventoryForToday,
   getGiftAvailability,
   getDateKey,
 } = require('../services/giftInventory');
+const { determineGiftTypeFromScore } = require('../services/giftScoreSettings');
 const { buildResultPayload } = require('../utils/result');
 const { createLogger } = require('../utils/logger');
 
@@ -303,7 +303,7 @@ router.post('/sessions/:sessionId/submit-score', [
     }
 
     const score = Number(req.body.score);
-    const giftType = determineGiftType(score);
+    const giftType = await determineGiftTypeFromScore(score);
     log.step('score evaluated', { score, giftType, canClaimPrize: session.canClaimPrize });
     let giftNumber = null;
     let giftStatus = 'none';
@@ -359,6 +359,7 @@ router.post('/sessions/:sessionId/submit-score', [
         status: session.status,
       });
       io.to(`section:${session.gameHall}`).emit('game:scoreSubmitted', resultData);
+      io.to(`session:${session._id}`).emit('game:scoreSubmitted', resultData);
     }
 
     log.ok('score submitted', {

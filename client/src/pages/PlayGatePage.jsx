@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { sessionApiUrl } from '../utils/sessionQuery';
 import { resolvePostTermsPath } from '../utils/playFlow';
+import { usePlayerSocket } from '../utils/usePlayerSocket';
 import TermsPage from './TermsPage';
 
 export default function PlayGatePage() {
@@ -13,6 +14,8 @@ export default function PlayGatePage() {
   const queryStr = searchParams.toString();
   const [loading, setLoading] = useState(true);
   const [showTerms, setShowTerms] = useState(false);
+
+  usePlayerSocket({ sessionId, sig, code });
 
   useEffect(() => {
     async function gate() {
@@ -63,7 +66,7 @@ export default function PlayGatePage() {
   }
 
   if (showTerms) {
-    return <TermsPage />;
+    return <TermsPage skipPlayerJoin />;
   }
 
   return null;

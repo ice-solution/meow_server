@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { io } from 'socket.io-client';
 import PageLayout from '../components/PageLayout';
 import { sessionApiUrl } from '../utils/sessionQuery';
 import { proceedAfterTerms, resolvePostTermsPath } from '../utils/playFlow';
+import { usePlayerSocket } from '../utils/usePlayerSocket';
 import './TermsPage.css';
 
 const TERMS_TEXT = `1. 恒基陽光物業管理有限公司為是次活動之主辦機構。
@@ -23,7 +23,7 @@ const TERMS_TEXT = `1. 恒基陽光物業管理有限公司為是次活動之主
 15. 主辦機構、所有協辦單位及承辦商及主辦商場任何員工均不能參與是次活動，以示公允。
 16. 如有任何爭議，主辦單位擁有最終決定權。`;
 
-export default function TermsPage() {
+export default function TermsPage({ skipPlayerJoin = false }) {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -69,21 +69,13 @@ export default function TermsPage() {
     checkSession();
   }, [sessionId, navigate, sig, code, queryStr, flow]);
 
-  useEffect(() => {
-    if (!sessionId) return;
-
-    const socket = io({ path: '/socket.io' });
-
-    socket.on('connect', () => {
-      socket.emit('player:join', { sessionId, sig, code });
-    });
-
-    socket.on('session:error', (data) => {
-      setSessionError(data.error);
-    });
-
-    return () => socket.disconnect();
-  }, [sessionId, sig, code]);
+  usePlayerSocket({
+    sessionId,
+    sig,
+    code,
+    enabled: !skipPlayerJoin,
+    onError: (data) => setSessionError(data.error),
+  });
 
   const handleCheckboxClick = async () => {
     if (!scrolledToBottom || agreed || submitting) return;

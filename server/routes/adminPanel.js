@@ -10,6 +10,10 @@ const {
   getDailyHistory,
   getDateKey,
 } = require('../services/adminStats');
+const {
+  getGiftScoreSettings,
+  updateGiftScoreSettings,
+} = require('../services/giftScoreSettings');
 const { createLogger } = require('../utils/logger');
 
 const router = express.Router();
@@ -139,6 +143,39 @@ router.put('/counters', adminPanelAuth, [
   } catch (err) {
     log.error('counters put error', err);
     res.status(500).json({ message: '無法更新序號' });
+  }
+});
+
+router.get('/gift-score-settings', adminPanelAuth, async (_req, res) => {
+  try {
+    const data = await getGiftScoreSettings();
+    res.json({ data });
+  } catch (err) {
+    log.error('gift-score-settings get error', err);
+    res.status(500).json({ message: '無法載入分數設定' });
+  }
+});
+
+router.put('/gift-score-settings', adminPanelAuth, [
+  body('minPrizeScore').isInt({ min: 0 }).withMessage('最低領獎分數必須為 0 或以上的整數'),
+  body('giftAMaxScore').isInt({ min: 0 }).withMessage('禮物 A 最高分必須為 0 或以上的整數'),
+], async (req, res) => {
+  log.start('PUT /gift-score-settings', req.body);
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array()[0].msg });
+    }
+
+    const data = await updateGiftScoreSettings({
+      minPrizeScore: req.body.minPrizeScore,
+      giftAMaxScore: req.body.giftAMaxScore,
+    });
+    log.ok('gift score settings updated', data);
+    res.json({ data });
+  } catch (err) {
+    log.error('gift-score-settings put error', err);
+    res.status(err.status || 500).json({ message: err.message || '無法更新分數設定' });
   }
 });
 

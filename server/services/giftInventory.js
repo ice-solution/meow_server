@@ -51,14 +51,6 @@ function formatTimeLabel({ hour, minute }) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
-function determineGiftType(score) {
-  const s = Number(score);
-  if (!Number.isFinite(s) || s < 100) return null;
-  if (s <= 400) return 'A';
-  if (s > 400) return 'B';
-  return null;
-}
-
 function getPrizeInfo(giftType) {
   if (giftType === 'A') return PRIZE_A;
   if (giftType === 'B') return PRIZE_B;
@@ -213,7 +205,6 @@ function startGiftRefillScheduler() {
 
 module.exports = {
   getDateKey,
-  determineGiftType,
   getPrizeInfo,
   getInventoryForToday,
   getGiftAvailability,

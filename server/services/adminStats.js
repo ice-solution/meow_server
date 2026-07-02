@@ -4,6 +4,7 @@ const GiftInventory = require('../models/GiftInventory');
 const Counter = require('../models/Counter');
 const mongoose = require('mongoose');
 const { getGiftAvailability, getDateKey } = require('./giftInventory');
+const { getGiftScoreSettings } = require('./giftScoreSettings');
 
 async function getCounters() {
   const [counterA, counterB] = await Promise.all([
@@ -106,7 +107,7 @@ async function getEmailList({ dateKey, page = 1, limit = 50 }) {
 }
 
 async function getOverview(dateKey = getDateKey()) {
-  const [availability, counters, dailyInventory, players, giftResults] = await Promise.all([
+  const [availability, counters, dailyInventory, players, giftResults, scoreSettings] = await Promise.all([
     getGiftAvailability(),
     getCounters(),
     getDailyInventory(dateKey),
@@ -115,6 +116,7 @@ async function getOverview(dateKey = getDateKey()) {
       { $match: { dateKey, giftStatus: 'awarded', giftType: { $in: ['A', 'B'] } } },
       { $group: { _id: '$giftType', count: { $sum: 1 } } },
     ]),
+    getGiftScoreSettings(),
   ]);
 
   const awardedFromResults = { A: 0, B: 0 };
@@ -146,6 +148,7 @@ async function getOverview(dateKey = getDateKey()) {
       },
     },
     counters,
+    scoreSettings,
   };
 }
 

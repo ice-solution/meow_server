@@ -19,15 +19,21 @@ export default function EmailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [registered, setRegistered] = useState(false);
+  const [duplicatePendingEmail, setDuplicatePendingEmail] = useState(null);
+  const [hideDuplicateImage, setHideDuplicateImage] = useState(false);
 
   const isValidEmail = EMAIL_RE.test(email.trim());
   const hasInvalidError = errorType === 'invalid' || errorType === 'unreachable';
+  const showDuplicateWarning =
+    duplicatePendingEmail !== null &&
+    duplicatePendingEmail === email.trim() &&
+    !hideDuplicateImage;
   const canStart =
     !hasInvalidError &&
     (registered ? true : isValidEmail);
 
   const wordImageSrc =
-    errorType === 'registered'
+    showDuplicateWarning
       ? '/assets/Email_Registered.png'
       : hasInvalidError
         ? '/assets/Email_Invalid.png'
@@ -58,7 +64,9 @@ export default function EmailPage() {
         if (data.status === 'registered') {
           setRegistered(true);
           if (data.email) setEmail(data.email);
-          if (data.canClaimPrize === false) setErrorType('registered');
+          if (data.canClaimPrize === false) {
+            setDuplicatePendingEmail(data.email || null);
+          }
         }
       } catch {
         setErrorType('session');
@@ -96,15 +104,24 @@ export default function EmailPage() {
     if (!isValidEmail || submitting) return;
 
     setSubmitting(true);
-    if (errorType !== 'registered') {
+    if (!duplicatePendingEmail) {
       setErrorType(null);
     }
+
+    const trimmedEmail = email.trim();
+    const acceptDuplicate =
+      duplicatePendingEmail !== null && duplicatePendingEmail === trimmedEmail;
 
     try {
       const res = await fetch(sessionApiUrl(sessionId, '/register-email', sig, code), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), sig, code }),
+        body: JSON.stringify({
+          email: trimmedEmail,
+          sig,
+          code,
+          acceptDuplicate,
+        }),
       });
 
       const data = await res.json();
@@ -121,10 +138,13 @@ export default function EmailPage() {
       }
 
       if (data.warning === 'already_registered') {
-        setErrorType('registered');
+        setDuplicatePendingEmail(trimmedEmail);
+        setHideDuplicateImage(false);
         return;
       }
 
+      setDuplicatePendingEmail(null);
+      setHideDuplicateImage(false);
       setRegistered(true);
       await proceedToGame();
     } catch {
@@ -160,14 +180,19 @@ export default function EmailPage() {
           placeholder="example@email.com"
           value={email}
           onChange={(e) => {
-            setEmail(e.target.value);
-            if (errorType === 'invalid' || errorType === 'unreachable' || errorType === 'registered') {
+            const next = e.target.value;
+            setEmail(next);
+            if (errorType === 'invalid' || errorType === 'unreachable') {
               setErrorType(null);
+            }
+            if (duplicatePendingEmail && next.trim() !== duplicatePendingEmail) {
+              setDuplicatePendingEmail(null);
+              setHideDuplicateImage(false);
             }
           }}
           onFocus={() => {
-            if (errorType === 'registered') {
-              setErrorType(null);
+            if (duplicatePendingEmail) {
+              setHideDuplicateImage(true);
             }
           }}
           autoComplete="email"
@@ -179,8 +204,8 @@ export default function EmailPage() {
       <img
         src={wordImageSrc}
         alt={
-          errorType === 'registered'
-            ? '電郵已登記'
+          showDuplicateWarning
+            ? '電郵今日已登記'
             : hasInvalidError
               ? '電郵地址無效'
               : '活動說明'

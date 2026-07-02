@@ -274,19 +274,21 @@ router.post('/:sessionId/register-email', async (req, res) => {
     const dateKey = getDateKey();
     const usage = await checkEmailUsedToday(normalizedEmail, dateKey, session._id);
 
-    const canClaimPrize = usage.usedToday ? false : true;
+    const canClaimPrize = usage.reason === 'already_registered' ? false : usage.canClaimPrize !== false;
     const isResubmitSameSession = usage.usedToday && !usage.reason;
     const alreadyUsedToday = usage.usedToday && usage.reason === 'already_registered';
+    const acceptDuplicate = req.body.acceptDuplicate === true;
 
     log.step('email check', {
       email: normalizedEmail,
       canClaimPrize,
       isResubmitSameSession,
       alreadyUsedToday,
+      acceptDuplicate,
     });
 
-    if (alreadyUsedToday) {
-      log.ok('email duplicate today, not persisted', {
+    if (alreadyUsedToday && !acceptDuplicate) {
+      log.ok('email duplicate today, awaiting confirm', {
         sessionId: session._id,
         email: normalizedEmail,
       });

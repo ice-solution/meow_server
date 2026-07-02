@@ -1,11 +1,16 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import { usePlayerSocket } from '../utils/usePlayerSocket';
 import './SorryGatePage.css';
 
 export default function SorryGatePage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const sig = searchParams.get('sig') || '';
+  const code = searchParams.get('code') || '';
+
+  usePlayerSocket({ sessionId, sig, code });
 
   const handleStart = () => {
     const params = new URLSearchParams(searchParams);

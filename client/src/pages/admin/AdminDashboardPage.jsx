@@ -22,8 +22,11 @@ export default function AdminDashboardPage() {
   const [emailPage, setEmailPage] = useState(1);
   const [counterA, setCounterA] = useState('');
   const [counterB, setCounterB] = useState('');
+  const [minPrizeScore, setMinPrizeScore] = useState('');
+  const [giftAMaxScore, setGiftAMaxScore] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingScores, setSavingScores] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -41,6 +44,8 @@ export default function AdminDashboardPage() {
       setEmails(em.data);
       setCounterA(String(ov.data.counters.giftNumberA));
       setCounterB(String(ov.data.counters.giftNumberB));
+      setMinPrizeScore(String(ov.data.scoreSettings?.minPrizeScore ?? 100));
+      setGiftAMaxScore(String(ov.data.scoreSettings?.giftAMaxScore ?? 400));
       if (!dateKey) setDateKey(ov.data.dateKey);
     } catch (err) {
       setError(err.message);
@@ -80,12 +85,36 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleSaveScoreSettings = async (e) => {
+    e.preventDefault();
+    setSavingScores(true);
+    setMessage('');
+    setError('');
+    try {
+      const { data } = await adminApi.updateGiftScoreSettings({
+        minPrizeScore: Number(minPrizeScore),
+        giftAMaxScore: Number(giftAMaxScore),
+      });
+      setMinPrizeScore(String(data.minPrizeScore));
+      setGiftAMaxScore(String(data.giftAMaxScore));
+      setMessage('分數門檻已更新');
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingScores(false);
+    }
+  };
+
   if (loading && !overview) {
     return <div className="admin-page admin-page--loading">載入中…</div>;
   }
 
   const inv = overview?.inventory?.current;
   const players = overview?.players;
+  const scoreRules = overview?.scoreSettings?.rules;
+  const noPrizeMax = Math.max(0, Number(minPrizeScore || 0) - 1);
+  const giftBMin = Number(giftAMaxScore || 0) + 1;
 
   return (
     <div className="admin-page">
@@ -126,12 +155,12 @@ export default function AdminDashboardPage() {
           <StatCard
             label="今日派發禮物 A"
             value={overview?.giftsDispatched?.A ?? 0}
-            sub="Prize2.png · 100–400分"
+            sub={`Prize2.png · ${scoreRules?.giftA ?? `${minPrizeScore}–${giftAMaxScore}`}分`}
           />
           <StatCard
             label="今日派發禮物 B"
             value={overview?.giftsDispatched?.B ?? 0}
-            sub="Prize1.png · >400分"
+            sub={`Prize1.png · ${scoreRules?.giftB ?? `${giftBMin}+`}分`}
           />
           <StatCard
             label="禮物 A 餘額"
@@ -153,6 +182,43 @@ export default function AdminDashboardPage() {
             }
           />
         </div>
+      </section>
+
+      <section className="admin-section">
+        <h2>禮物分數門檻</h2>
+        <p className="admin-hint">
+          設定達標分數區間。低於「最低領獎分數」不派獎；介乎最低至禮物 A 最高分（含）派禮物 A；再高派禮物 B。
+        </p>
+        <form className="admin-counter-form admin-score-form" onSubmit={handleSaveScoreSettings}>
+          <label>
+            最低領獎分數
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={minPrizeScore}
+              onChange={(e) => setMinPrizeScore(e.target.value)}
+            />
+          </label>
+          <label>
+            禮物 A 最高分（含）
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={giftAMaxScore}
+              onChange={(e) => setGiftAMaxScore(e.target.value)}
+            />
+          </label>
+          <div className="admin-score-form__preview">
+            <p>無獎：0–{noPrizeMax} 分</p>
+            <p>禮物 A（Prize2）：{minPrizeScore || '—'}–{giftAMaxScore || '—'} 分</p>
+            <p>禮物 B（Prize1）：{giftBMin || '—'}+ 分</p>
+          </div>
+          <button type="submit" className="admin-btn" disabled={savingScores}>
+            {savingScores ? '儲存中…' : '儲存分數門檻'}
+          </button>
+        </form>
       </section>
 
       <section className="admin-section">

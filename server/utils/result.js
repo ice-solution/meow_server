@@ -1,7 +1,4 @@
-const {
-  determineGiftType,
-  getPrizeInfo,
-} = require('../services/giftInventory');
+const { getPrizeInfo } = require('../services/giftInventory');
 
 function buildResultPayload(session) {
   const prize = session.giftType ? getPrizeInfo(session.giftType) : null;

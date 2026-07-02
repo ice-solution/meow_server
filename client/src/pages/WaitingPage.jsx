@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { io } from 'socket.io-client';
 import PageLayout from '../components/PageLayout';
 import { sessionApiUrl } from '../utils/sessionQuery';
+import { usePlayerSocket } from '../utils/usePlayerSocket';
 import './WaitingPage.css';
 
 export default function WaitingPage() {
@@ -11,17 +11,7 @@ export default function WaitingPage() {
   const sig = searchParams.get('sig') || '';
   const code = searchParams.get('code') || '';
 
-  useEffect(() => {
-    if (!sessionId) return;
-
-    const socket = io({ path: '/socket.io' });
-
-    socket.on('connect', () => {
-      socket.emit('player:join', { sessionId, sig, code });
-    });
-
-    return () => socket.disconnect();
-  }, [sessionId, sig, code]);
+  usePlayerSocket({ sessionId, sig, code });
 
   useEffect(() => {
     async function keepAlive() {

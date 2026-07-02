@@ -12,6 +12,7 @@ export default function GameClientPage() {
   const [playUrl, setPlayUrl] = useState('');
   const [qrImageUrl, setQrImageUrl] = useState('');
   const [status, setStatus] = useState('created');
+  const [lastResult, setLastResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -52,6 +53,7 @@ export default function GameClientPage() {
       setPlayUrl(data.qr.joinUrl);
       setQrImageUrl(data.qr.imageUrl);
       setStatus('created');
+      setLastResult(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -81,14 +83,19 @@ export default function GameClientPage() {
     socket.on('session:bound', (data) => {
       if (data.sessionId === sessionId) {
         setStatus('connected');
-        console.log('[GameClient] session:bound', data);
       }
     });
 
     socket.on('session:game-start', (data) => {
       if (data.sessionId === sessionId) {
         setStatus('playing');
-        console.log('[GameClient] session:game-start', data);
+      }
+    });
+
+    socket.on('game:scoreSubmitted', (data) => {
+      if (data.sessionId === sessionId) {
+        setStatus('finished');
+        setLastResult(data);
       }
     });
 
@@ -97,7 +104,7 @@ export default function GameClientPage() {
 
   const statusLabel = {
     created: '等待玩家掃描 QR Code…',
-    connected: '玩家已連接',
+    connected: '玩家已掃描 QR Code',
     terms_accepted: '玩家已同意條款',
     registered: '玩家已登記電郵',
     playing: '遊戲進行中',
@@ -131,6 +138,12 @@ export default function GameClientPage() {
             </div>
             <p className="game-client__url">{playUrl}</p>
             <p className="game-client__status">{statusLabel[status] || status}</p>
+            {lastResult && (
+              <p className="game-client__result">
+                分數：{lastResult.score ?? '—'}
+                {lastResult.giftNumber ? ` · ${lastResult.giftNumber}` : ''}
+              </p>
+            )}
             <button type="button" className="game-client__refresh" onClick={createSession}>
               產生新 QR Code
             </button>

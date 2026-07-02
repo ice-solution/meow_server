@@ -42,6 +42,12 @@
 .game-client__status {
   font-size: 1.1rem;
   color: #7bed9f;
+  margin-bottom: 0.5rem;
+}
+
+.game-client__result {
+  font-size: 0.95rem;
+  color: #dfe6e9;
   margin-bottom: 1.5rem;
 }
 

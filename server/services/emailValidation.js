@@ -2,6 +2,7 @@ const { validate } = require('deep-email-validator');
 const mongoose = require('mongoose');
 const Registration = require('../models/Registration');
 const GameSession = require('../models/GameSession');
+const GameResult = require('../models/GameResult');
 const { createLogger } = require('../utils/logger');
 
 const log = createLogger('EmailValidation');
@@ -84,18 +85,35 @@ async function validateEmailDeliverability(email) {
   }
 }
 
+async function emailAwardedGiftToday(email, dateKey) {
+  const awarded = await GameResult.findOne({
+    email,
+    dateKey,
+    giftStatus: 'awarded',
+    giftNumber: { $nin: [null, ''] },
+  })
+    .select('_id session giftNumber')
+    .lean();
+  return !!awarded;
+}
+
 async function checkEmailUsedToday(email, dateKey, sessionId) {
   const sessionIdStr = String(sessionId);
   const { start, end } = getHkDayBounds(dateKey);
+  const hasAwardedGift = await emailAwardedGiftToday(email, dateKey);
 
   const existingReg = await Registration.findOne({ email, dateKey }).lean();
   if (existingReg && existingReg.sessionId !== sessionIdStr) {
-    log.step('email used today (registration)', { email: maskEmail(email), dateKey });
-    return {
-      usedToday: true,
-      canClaimPrize: false,
-      reason: 'already_registered',
-    };
+    if (hasAwardedGift) {
+      log.step('email used today with gift awarded (registration)', { email: maskEmail(email), dateKey });
+      return {
+        usedToday: true,
+        canClaimPrize: false,
+        reason: 'already_registered',
+      };
+    }
+    log.step('email used today but no gift awarded — not duplicate', { email: maskEmail(email), dateKey });
+    return { usedToday: false, canClaimPrize: true, reason: null };
   }
 
   const otherSessionQuery = {
@@ -109,15 +127,22 @@ async function checkEmailUsedToday(email, dateKey, sessionId) {
 
   const playedElsewhere = await GameSession.findOne(otherSessionQuery).select('_id canClaimPrize').lean();
   if (playedElsewhere) {
-    log.step('email used today (session)', {
+    if (hasAwardedGift) {
+      log.step('email used today with gift awarded (session)', {
+        email: maskEmail(email),
+        otherSessionId: playedElsewhere._id,
+      });
+      return {
+        usedToday: true,
+        canClaimPrize: false,
+        reason: 'already_registered',
+      };
+    }
+    log.step('email played elsewhere today but no gift awarded — not duplicate', {
       email: maskEmail(email),
       otherSessionId: playedElsewhere._id,
     });
-    return {
-      usedToday: true,
-      canClaimPrize: false,
-      reason: 'already_registered',
-    };
+    return { usedToday: false, canClaimPrize: true, reason: null };
   }
 
   if (existingReg && existingReg.sessionId === sessionIdStr) {
