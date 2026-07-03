@@ -27,6 +27,11 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingScores, setSavingScores] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [clearModalOpen, setClearModalOpen] = useState(false);
+  const [clearStep, setClearStep] = useState(1);
+  const [clearPhrase, setClearPhrase] = useState('');
+  const [clearing, setClearing] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -106,6 +111,63 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleSendClientEmail = async () => {
+    if (!window.confirm('確定要立即發送全部 Email 用戶列表 CSV 給客戶？')) {
+      return;
+    }
+    setSendingEmail(true);
+    setMessage('');
+    setError('');
+    try {
+      const res = await adminApi.sendClientEmail();
+      setMessage(res.message || '電郵已發送');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  const openClearModal = () => {
+    setClearStep(1);
+    setClearPhrase('');
+    setClearModalOpen(true);
+  };
+
+  const closeClearModal = () => {
+    if (clearing) return;
+    setClearModalOpen(false);
+    setClearStep(1);
+    setClearPhrase('');
+  };
+
+  const handleClearData = async () => {
+    if (clearPhrase !== '清除所有資料') {
+      setError('請輸入正確的確認文字');
+      return;
+    }
+    setClearing(true);
+    setMessage('');
+    setError('');
+    try {
+      const res = await adminApi.clearData({
+        confirmStep1: 'true',
+        confirmStep2: 'true',
+        confirmPhrase: clearPhrase,
+      });
+      setMessage(res.message || '資料已清除');
+      setClearModalOpen(false);
+      setClearStep(1);
+      setClearPhrase('');
+      setEmailPage(1);
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setClearing(false);
+    }
+  };
+
   if (loading && !overview) {
     return <div className="admin-page admin-page--loading">載入中…</div>;
   }
@@ -131,11 +193,87 @@ export default function AdminDashboardPage() {
           <button type="button" className="admin-btn admin-btn--ghost" onClick={load}>
             重新整理
           </button>
+          <button
+            type="button"
+            className="admin-btn admin-btn--ghost"
+            onClick={handleSendClientEmail}
+            disabled={sendingEmail}
+          >
+            {sendingEmail ? '發送中…' : '發送客戶電郵'}
+          </button>
+          <button type="button" className="admin-btn admin-btn--danger" onClick={openClearModal}>
+            清除資料
+          </button>
           <button type="button" className="admin-btn admin-btn--ghost" onClick={handleLogout}>
             登出
           </button>
         </div>
       </header>
+
+      {clearModalOpen && (
+        <div className="admin-modal" role="dialog" aria-modal="true">
+          <div className="admin-modal__backdrop" onClick={closeClearModal} />
+          <div className="admin-modal__panel">
+            <h3>清除所有資料</h3>
+            {clearStep === 1 && (
+              <>
+                <p>第一次確認：此操作會刪除所有 Email 登記、派發禮物記錄、遊戲 session 及每日庫存。</p>
+                <p className="admin-modal__warn">禮物分數門檻設定不會被清除。</p>
+                <div className="admin-modal__actions">
+                  <button type="button" className="admin-btn admin-btn--ghost" onClick={closeClearModal}>
+                    取消
+                  </button>
+                  <button type="button" className="admin-btn admin-btn--danger" onClick={() => setClearStep(2)}>
+                    我了解，繼續
+                  </button>
+                </div>
+              </>
+            )}
+            {clearStep === 2 && (
+              <>
+                <p>第二次確認：序號會重設為 0、0，下一份禮物將由 000001 開始。</p>
+                <p className="admin-modal__warn">此操作無法復原。</p>
+                <div className="admin-modal__actions">
+                  <button type="button" className="admin-btn admin-btn--ghost" onClick={() => setClearStep(1)}>
+                    返回
+                  </button>
+                  <button type="button" className="admin-btn admin-btn--danger" onClick={() => setClearStep(3)}>
+                    仍要繼續
+                  </button>
+                </div>
+              </>
+            )}
+            {clearStep === 3 && (
+              <>
+                <p>第三次確認：請輸入「清除所有資料」以完成清除。</p>
+                <label className="admin-modal__input">
+                  確認文字
+                  <input
+                    type="text"
+                    value={clearPhrase}
+                    onChange={(e) => setClearPhrase(e.target.value)}
+                    placeholder="清除所有資料"
+                    autoComplete="off"
+                  />
+                </label>
+                <div className="admin-modal__actions">
+                  <button type="button" className="admin-btn admin-btn--ghost" onClick={() => setClearStep(2)}>
+                    返回
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-btn admin-btn--danger"
+                    onClick={handleClearData}
+                    disabled={clearing || clearPhrase !== '清除所有資料'}
+                  >
+                    {clearing ? '清除中…' : '確認清除所有資料'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && <p className="admin-alert admin-alert--error">{error}</p>}
       {message && <p className="admin-alert admin-alert--ok">{message}</p>}
@@ -301,6 +439,9 @@ export default function AdminDashboardPage() {
           <h2>Email 用戶列表</h2>
           <span>共 {emails.total} 筆</span>
         </div>
+        <p className="admin-hint">
+          每日 00:00（香港時間）會自動將全部 Email 用戶列表 CSV 發送至客戶電郵；亦可使用上方「發送客戶電郵」人手發送。
+        </p>
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>

@@ -14,6 +14,8 @@ const {
   getGiftScoreSettings,
   updateGiftScoreSettings,
 } = require('../services/giftScoreSettings');
+const { sendClientEmailReport } = require('../services/clientEmailReport');
+const { clearAllGameData } = require('../services/dataReset');
 const { createLogger } = require('../utils/logger');
 
 const router = express.Router();
@@ -176,6 +178,42 @@ router.put('/gift-score-settings', adminPanelAuth, [
   } catch (err) {
     log.error('gift-score-settings put error', err);
     res.status(err.status || 500).json({ message: err.message || '無法更新分數設定' });
+  }
+});
+
+router.post('/send-client-email', adminPanelAuth, async (_req, res) => {
+  log.start('POST /send-client-email');
+  try {
+    const data = await sendClientEmailReport({ trigger: 'manual' });
+    log.ok('manual client email sent', data);
+    res.json({ data, message: `已發送 ${data.rowCount} 筆 Email 列表至客戶` });
+  } catch (err) {
+    log.error('send-client-email error', err);
+    res.status(500).json({ message: err.message || '無法發送電郵' });
+  }
+});
+
+router.post('/clear-data', adminPanelAuth, [
+  body('confirmStep1').equals('true').withMessage('需要完成第一次確認'),
+  body('confirmStep2').equals('true').withMessage('需要完成第二次確認'),
+  body('confirmPhrase').equals('清除所有資料').withMessage('確認文字不正確'),
+], async (req, res) => {
+  log.start('POST /clear-data');
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: errors.array()[0].msg });
+    }
+
+    const data = await clearAllGameData();
+    log.ok('clear-data completed', data);
+    res.json({
+      data,
+      message: '已清除所有遊戲資料（禮物分數門檻已保留，序號已重設為 0）',
+    });
+  } catch (err) {
+    log.error('clear-data error', err);
+    res.status(500).json({ message: err.message || '無法清除資料' });
   }
 });
 

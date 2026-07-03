@@ -73,4 +73,13 @@ export const adminApi = {
       body: JSON.stringify(payload),
     });
   },
+  sendClientEmail() {
+    return adminFetch('/send-client-email', { method: 'POST', body: '{}' });
+  },
+  clearData({ confirmStep1, confirmStep2, confirmPhrase }) {
+    return adminFetch('/clear-data', {
+      method: 'POST',
+      body: JSON.stringify({ confirmStep1, confirmStep2, confirmPhrase }),
+    });
+  },
 };

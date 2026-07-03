@@ -16,6 +16,7 @@ const adminPanelRouter = require('./routes/adminPanel');
 const { setupSocket } = require('./socket');
 const { getLocalIp } = require('./utils/network');
 const { startGiftRefillScheduler } = require('./services/giftInventory');
+const { startClientEmailScheduler } = require('./services/clientEmailReport');
 const { requestLogger } = require('./middleware/requestLogger');
 const { createLogger } = require('./utils/logger');
 
@@ -77,6 +78,7 @@ async function start() {
     console.log('MongoDB connected');
     createLogger('Server').ok('MongoDB connected', { uri: MONGODB_URI.replace(/\/\/.*@/, '//***@') });
     startGiftRefillScheduler();
+    startClientEmailScheduler();
   } catch (err) {
     console.warn('MongoDB connection failed — running without DB:', err.message);
   }
