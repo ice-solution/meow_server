@@ -52,6 +52,7 @@ export default function PrizePage() {
 
   return (
     <PageLayout
+      mainClassName="page-layout__main--prize"
       footerSrc="/assets/Deco4.png"
       footerExtra={
         hasPrize && result.giftNumber ? (
@@ -59,22 +60,26 @@ export default function PrizePage() {
         ) : null
       }
     >
-      <img src="/assets/Logo.png" alt="Logo" className="page-layout__logo" />
-      <img src="/assets/Title.png" alt="Hunger Run 2026" className="page-layout__title" />
+      <div className="prize-page__body">
+        <img src="/assets/Logo.png" alt="Logo" className="page-layout__logo" />
+        <img src="/assets/Title.png" alt="Hunger Run 2026" className="page-layout__title" />
 
-      {hasPrize ? (
-        <>
-          <img src="/assets/Congrats.png" alt="恭喜您獲得" className="prize-page__congrats" />
-          <img
-            src={`/assets/${result.prizeAsset}`}
-            alt={result.prizeName || '獎品'}
-            className="prize-page__prize"
-          />
-          <img src="/assets/ShowScreenshots.png" alt="換領說明" className="prize-page__screenshot-hint" />
-        </>
-      ) : (
-        <img src="/assets/Sorry.png" alt="未能獲獎" className="prize-page__sorry" />
-      )}
+        {hasPrize ? (
+          <>
+            <img src="/assets/Congrats.png" alt="恭喜您獲得" className="prize-page__congrats" />
+            <div className="prize-page__prize-wrap">
+              <img
+                src={`/assets/${result.prizeAsset}`}
+                alt={result.prizeName || '獎品'}
+                className="prize-page__prize"
+              />
+            </div>
+            <img src="/assets/ShowScreenshots.png" alt="換領說明" className="prize-page__screenshot-hint" />
+          </>
+        ) : (
+          <img src="/assets/Sorry.png" alt="未能獲獎" className="prize-page__sorry" />
+        )}
+      </div>
     </PageLayout>
   );
 }
