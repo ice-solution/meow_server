@@ -17,6 +17,7 @@ const {
 } = require('../services/giftInventory');
 const { determineGiftTypeFromScore, getGiftScoreSettings } = require('../services/giftScoreSettings');
 const { buildResultPayload } = require('../utils/result');
+const { formatGiftNumber } = require('../utils/giftNumber');
 const { createLogger } = require('../utils/logger');
 
 const router = express.Router();
@@ -319,7 +320,7 @@ router.post('/sessions/:sessionId/submit-score', [
       const allocation = await allocateGift(giftType);
       log.step('gift allocation', allocation);
       if (allocation.success) {
-        giftNumber = allocation.giftNumber;
+        giftNumber = formatGiftNumber(allocation.giftNumber);
         prizeName = allocation.prizeName;
         prizeAsset = allocation.prizeAsset;
         giftStatus = 'awarded';

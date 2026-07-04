@@ -1,6 +1,7 @@
 const GiftInventory = require('../models/GiftInventory');
 const Counter = require('../models/Counter');
 const { createLogger } = require('../utils/logger');
+const { formatGiftNumber } = require('../utils/giftNumber');
 
 const log = createLogger('GiftInventory');
 
@@ -152,7 +153,7 @@ async function nextGiftNumber(giftType) {
     { $inc: { seq: 1 } },
     { new: true, upsert: true }
   );
-  return String(counter.seq).padStart(6, '0');
+  return formatGiftNumber(counter.seq);
 }
 
 async function allocateGift(giftType) {

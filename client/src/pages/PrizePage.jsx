@@ -1,12 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
+import { formatGiftNumberLabel } from '../utils/giftNumber';
 import './PrizePage.css';
-
-function formatGiftLabel(giftNumber) {
-  if (!giftNumber) return '';
-  return `No.${giftNumber}`;
-}
 
 export default function PrizePage() {
   const { sessionId } = useParams();
@@ -56,7 +52,7 @@ export default function PrizePage() {
       footerSrc="/assets/Deco4.png"
       footerExtra={
         hasPrize && result.giftNumber ? (
-          <p className="prize-page__number">{formatGiftLabel(result.giftNumber)}</p>
+          <p className="prize-page__number">{formatGiftNumberLabel(result.giftNumber)}</p>
         ) : null
       }
     >

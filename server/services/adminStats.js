@@ -5,6 +5,7 @@ const Counter = require('../models/Counter');
 const mongoose = require('mongoose');
 const { getGiftAvailability, getDateKey } = require('./giftInventory');
 const { getGiftScoreSettings } = require('./giftScoreSettings');
+const { formatGiftNumber } = require('../utils/giftNumber');
 
 async function getCounters() {
   const [counterA, counterB] = await Promise.all([
@@ -96,7 +97,7 @@ async function getEmailList({ dateKey, page = 1, limit = 50 }) {
         registeredAt: row.createdAt,
         score: result?.score ?? null,
         giftType: result?.giftType ?? null,
-        giftNumber: result?.giftNumber ?? null,
+        giftNumber: formatGiftNumber(result?.giftNumber),
         giftStatus: result?.giftStatus ?? null,
       };
     }),

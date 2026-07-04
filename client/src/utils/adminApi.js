@@ -82,4 +82,34 @@ export const adminApi = {
       body: JSON.stringify({ confirmStep1, confirmStep2, confirmPhrase }),
     });
   },
+  async downloadEmailCsv() {
+    const token = getAdminToken();
+    const res = await fetch('/api/admin-panel/export-emails.csv', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (res.status === 401) {
+      setAdminToken(null);
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || '未登入');
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || '下載失敗');
+    }
+
+    const blob = await res.blob();
+    const disposition = res.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    const filename = match?.[1] || 'meow-email-users.csv';
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    return { filename };
+  },
 };

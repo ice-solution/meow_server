@@ -39,7 +39,7 @@ async function sendMail({ to, subject, text, html, attachments = [] }) {
 
   const transport = getTransporter();
   const info = await transport.sendMail({
-    from: `"WeOW Hunger Run" <${user}>`,
+    from: `"Meow Hunger Run" <${user}>`,
     to: recipient,
     subject,
     text,

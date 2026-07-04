@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Registration = require('../models/Registration');
 const GameResult = require('../models/GameResult');
+const { formatGiftNumber } = require('../utils/giftNumber');
 
 const CSV_HEADERS = [
   'email',
@@ -51,7 +52,7 @@ async function fetchAllEmailRows() {
       registeredAt: row.createdAt ? new Date(row.createdAt).toISOString() : '',
       score: result?.score ?? '',
       giftType: result?.giftType ?? '',
-      giftNumber: result?.giftNumber ?? '',
+      giftNumber: formatGiftNumber(result?.giftNumber) || '',
       giftStatus: result?.giftStatus ?? '',
     };
   });

@@ -36,13 +36,13 @@ async function sendClientEmailReport({ trigger = 'manual' } = {}) {
 
   const dateKey = getDateKey();
   const { csv, rowCount } = await buildEmailUsersCsv();
-  const filename = `weow-email-users-${dateKey}.csv`;
+  const filename = `meow-email-users-${dateKey}.csv`;
 
   await sendMail({
     to: clientEmail,
     subject: `Hunger Run 2026 Email 用戶列表 ${dateKey}`,
-    text: `附件為 WeOW 全部 Email 用戶列表（共 ${rowCount} 筆）。\n觸發方式：${trigger === 'scheduled' ? '每日自動' : '人手發送'}\n香港日期：${dateKey}`,
-    html: `<p>附件為 WeOW 全部 Email 用戶列表（共 <strong>${rowCount}</strong> 筆）。</p><p>觸發方式：${trigger === 'scheduled' ? '每日自動' : '人手發送'}</p><p>香港日期：${dateKey}</p>`,
+    text: '附件為 Hunger Run 2026 email 用戶列表.',
+    html: '<p>附件為 Hunger Run 2026 email 用戶列表.</p>',
     attachments: [
       {
         filename,

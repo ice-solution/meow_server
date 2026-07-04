@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
+import { formatGiftNumberLabel } from '../utils/giftNumber';
 import './GameClientPage.css';
 
 const SECTION_ID = import.meta.env.VITE_SECTION_ID;
@@ -141,7 +142,9 @@ export default function GameClientPage() {
             {lastResult && (
               <p className="game-client__result">
                 分數：{lastResult.score ?? '—'}
-                {lastResult.giftNumber ? ` · ${lastResult.giftNumber}` : ''}
+                {formatGiftNumberLabel(lastResult.giftNumber)
+                  ? ` · ${formatGiftNumberLabel(lastResult.giftNumber)}`
+                  : ''}
               </p>
             )}
             <button type="button" className="game-client__refresh" onClick={createSession}>

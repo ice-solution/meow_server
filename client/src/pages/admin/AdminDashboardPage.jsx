@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminApi, setAdminToken } from '../../utils/adminApi';
+import { formatGiftNumberLabel } from '../../utils/giftNumber';
 import './AdminDashboardPage.css';
 
 function StatCard({ label, value, sub }) {
@@ -28,6 +29,7 @@ export default function AdminDashboardPage() {
   const [saving, setSaving] = useState(false);
   const [savingScores, setSavingScores] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [downloadingCsv, setDownloadingCsv] = useState(false);
   const [clearModalOpen, setClearModalOpen] = useState(false);
   const [clearStep, setClearStep] = useState(1);
   const [clearPhrase, setClearPhrase] = useState('');
@@ -128,6 +130,20 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleDownloadCsv = async () => {
+    setDownloadingCsv(true);
+    setMessage('');
+    setError('');
+    try {
+      const { filename } = await adminApi.downloadEmailCsv();
+      setMessage(`已下載 ${filename}`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDownloadingCsv(false);
+    }
+  };
+
   const openClearModal = () => {
     setClearStep(1);
     setClearPhrase('');
@@ -192,6 +208,14 @@ export default function AdminDashboardPage() {
           </label>
           <button type="button" className="admin-btn admin-btn--ghost" onClick={load}>
             重新整理
+          </button>
+          <button
+            type="button"
+            className="admin-btn admin-btn--ghost"
+            onClick={handleDownloadCsv}
+            disabled={downloadingCsv}
+          >
+            {downloadingCsv ? '下載中…' : '下載 CSV'}
           </button>
           <button
             type="button"
@@ -464,7 +488,7 @@ export default function AdminDashboardPage() {
                   <td>{row.canClaimPrize ? '是' : '否'}</td>
                   <td>{row.score ?? '—'}</td>
                   <td>{row.giftType ?? '—'}</td>
-                  <td>{row.giftNumber ? `No.${row.giftNumber}` : '—'}</td>
+                  <td>{formatGiftNumberLabel(row.giftNumber) || '—'}</td>
                   <td>{row.giftStatus ?? '—'}</td>
                   <td>{row.registeredAt ? new Date(row.registeredAt).toLocaleString('zh-HK') : '—'}</td>
                 </tr>

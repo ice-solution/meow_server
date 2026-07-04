@@ -12,6 +12,7 @@ const {
   getDateKey,
 } = require('../services/emailValidation');
 const { createLogger } = require('../utils/logger');
+const { formatGiftNumber } = require('../utils/giftNumber');
 
 const router = express.Router();
 const log = createLogger('Sessions');
@@ -65,7 +66,7 @@ router.get('/:sessionId', async (req, res) => {
       playFlow: session.playFlow || null,
       score: session.score,
       giftType: session.giftType,
-      giftNumber: session.giftNumber,
+      giftNumber: formatGiftNumber(session.giftNumber),
       expiresAt: session.expiresAt,
     });
   } catch (err) {

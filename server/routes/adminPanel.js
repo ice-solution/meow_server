@@ -16,6 +16,7 @@ const {
 } = require('../services/giftScoreSettings');
 const { sendClientEmailReport } = require('../services/clientEmailReport');
 const { clearAllGameData } = require('../services/dataReset');
+const { buildEmailUsersCsv } = require('../services/emailExport');
 const { createLogger } = require('../utils/logger');
 
 const router = express.Router();
@@ -190,6 +191,22 @@ router.post('/send-client-email', adminPanelAuth, async (_req, res) => {
   } catch (err) {
     log.error('send-client-email error', err);
     res.status(500).json({ message: err.message || '無法發送電郵' });
+  }
+});
+
+router.get('/export-emails.csv', adminPanelAuth, async (_req, res) => {
+  log.start('GET /export-emails.csv');
+  try {
+    const dateKey = getDateKey();
+    const { csv, rowCount } = await buildEmailUsersCsv();
+    const filename = `meow-email-users-${dateKey}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    log.ok('email csv exported', { rowCount, filename });
+    res.send(csv);
+  } catch (err) {
+    log.error('export-emails error', err);
+    res.status(500).json({ message: err.message || '無法匯出 CSV' });
   }
 });
 
